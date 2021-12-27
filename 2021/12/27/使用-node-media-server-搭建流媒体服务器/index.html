@@ -1,0 +1,155 @@
+<!DOCTYPE html><html><head><meta name="generator" content="Hexo 3.9.0"><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><title>使用 node-media-server 搭建流媒体服务器 | RenChing</title><meta name="description" content="使用 node-media-server 搭建流媒体服务器"><meta name="keywords" content="Centos,流媒体服务器,node-media-server"><meta name="author" content="RenChing Doe"><meta name="copyright" content="RenChing Doe"><meta name="format-detection" content="telephone=no"><link rel="shortcut icon" href="/img/favicon.ico"><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@latest/css/font-awesome.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css"><meta http-equiv="x-dns-prefetch-control" content="on"><link rel="canonical" href="http://yoursite.com/2021/12/27/使用-node-media-server-搭建流媒体服务器/"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="使用 node-media-server 搭建流媒体服务器"><meta name="twitter:description" content="使用 node-media-server 搭建流媒体服务器"><meta name="twitter:image" content="https://img-blog.csdnimg.cn/4a60c749c2af486aac62121f3715ae96.png?x-oss-process=image/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBAUmVuQ2hpbmc=,size_20,color_FFFFFF,t_70,g_se,x_16"><meta property="og:type" content="article"><meta property="og:title" content="使用 node-media-server 搭建流媒体服务器"><meta property="og:url" content="http://yoursite.com/2021/12/27/使用-node-media-server-搭建流媒体服务器/"><meta property="og:site_name" content="RenChing"><meta property="og:description" content="使用 node-media-server 搭建流媒体服务器"><meta property="og:image" content="https://img-blog.csdnimg.cn/4a60c749c2af486aac62121f3715ae96.png?x-oss-process=image/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBAUmVuQ2hpbmc=,size_20,color_FFFFFF,t_70,g_se,x_16"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><link rel="prev" title="分布式与集群的区别" href="http://yoursite.com/2021/12/27/分布式与集群的区别/"><link rel="next" title="使用 go-mysql-elasticsearch 开源工具同步 MySQL 数据到 ES" href="http://yoursite.com/2021/12/27/使用-go-mysql-elasticsearch-开源工具同步-MySQL-数据到-ES/"><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Titillium+Web"><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: {"defaultEncoding":2,"translateDelay":0,"cookieDomain":"https://renqingsangbu.github.io","msgToTraditionalChinese":"繁","msgToSimplifiedChinese":"简"},
+  highlight_copy: 'true',
+  copy: {
+    success: 'Copy successfully',
+    error: 'Copy error',
+    noSupport: 'The browser does not support'
+  },
+  bookmark: {
+    title: 'Bookmark',
+    message_prev: 'Press',
+    message_next: 'to bookmark this page'
+  },
+  runtime_unit: 'days'
+
+  
+}</script></head><body><canvas class="fireworks"></canvas><i class="fa fa-arrow-right" id="toggle-sidebar" aria-hidden="true"></i><div class="auto_open" id="sidebar"><div class="sidebar-toc"><div class="sidebar-toc__title">Catalog</div><div class="sidebar-toc__progress"><span class="progress-notice">You've read</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar"></div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#使用-node-media-server-搭建流媒体服务器"><span class="toc-text">使用 node-media-server 搭建流媒体服务器</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#特性"><span class="toc-text">特性</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#安装"><span class="toc-text">安装</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#编写-app-js"><span class="toc-text">编写 app.js</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#运行-app-js"><span class="toc-text">运行 app.js</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#使用-FFmpeg-命令推流"><span class="toc-text">使用 FFmpeg 命令推流</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#拉流测试"><span class="toc-text">拉流测试</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#推送-rtsp-流"><span class="toc-text">推送 rtsp 流</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#转-hls-流格式"><span class="toc-text">转 hls 流格式</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#使用代码对-rtmp-rtsp-流转流"><span class="toc-text">使用代码对 rtmp/rtsp 流转流</span></a></li></ol></li></ol></div></div></div><div id="content-outer"><div id="top-container" style="background-image: url(https://img-blog.csdnimg.cn/4a60c749c2af486aac62121f3715ae96.png?x-oss-process=image/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBAUmVuQ2hpbmc=,size_20,color_FFFFFF,t_70,g_se,x_16)"><div id="page-header"><span class="pull-left"> <a class="blog_title" id="site-name" href="/">RenChing</a></span><div class="open toggle-menu pull-right"><div class="menu-icon-first"></div><div class="menu-icon-second"></div><div class="menu-icon-third"></div></div><span class="pull-right menus"><div class="mobile_author_icon"><img class="lozad" data-src="/img/avatar.png" onerror="onerror=null;src='/img/friend_404.gif'"><div class="mobile_author-info__description"></div></div><hr><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fa fa-home"></i><span> 首页</span></a><a class="site-page" href="/archives/"><i class="fa-fw fa fa-archive"></i><span> 时间轴</span></a><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标籤</span></a><a class="site-page" href="/categories/"><i class="fa-fw fa fa-folder-open"></i><span> 分类</span></a><a class="site-page" href="/messageboard/"><i class="fa-fw fa fa-coffee"></i><span> 留言板</span></a><a class="site-page" href="/link/"><i class="fa-fw fa fa-link"></i><span> 友链</span></a><script>document.body.addEventListener('touchstart', function(){ });</script></div></span><span class="pull-right"></span></div><div id="post-info"><div id="post-title"><div class="posttitle">使用 node-media-server 搭建流媒体服务器</div></div><div id="post-meta"><time class="post-meta__date"><i class="fa fa-calendar" aria-hidden="true"></i> Created 2021-12-27<span class="post-meta__separator">|</span><i class="fa fa-history" aria-hidden="true"></i> Updated 2021-12-27</time></div></div></div><div class="layout layout_post" id="content-inner">   <article id="post"><div class="article-container" id="post-content"><h1 id="使用-node-media-server-搭建流媒体服务器"><a href="#使用-node-media-server-搭建流媒体服务器" class="headerlink" title="使用 node-media-server 搭建流媒体服务器"></a>使用 node-media-server 搭建流媒体服务器</h1><blockquote>
+<p><strong>主要应用Node.js 实现的RTSP(结合ffmpeg)/RTMP/HTTP/WebSocket/HLS/DASH流媒体服务器</strong></p>
+<p>node-media-server（相对稳定可用性高） 是作为流媒体服务器，可以把他理解为中转站，用于转换流格式或者对视频流做一些操作以及向外推送流地址。</p>
+<p>ffmpeg 是作为推流工具，将你需要转换的视频或者视频流推流到流媒体服务器中。</p>
+<p>拉流的意思是从流媒体服务器上拉去视频流，观看者通过拉取流媒体服务器发布的流地址进行观看。用视频播放器播放就是在拉流。</p>
+</blockquote>
+<h2 id="特性"><a href="#特性" class="headerlink" title="特性"></a>特性</h2><ul>
+<li>跨平台支持 Windows/Linux/Unix</li>
+<li>支持的音视频编码 H.264/H.265/AAC/SPEEX/NELLYMOSER</li>
+<li>支持缓存最近一个关键帧间隔数据，实现RTMP协议秒开</li>
+<li>支持事件回调</li>
+<li>支持https/wss加密传输</li>
+<li>支持服务器和流媒体信息统计</li>
+<li>支持RTMP直播流转HLS,DASH直播流</li>
+<li>支持RTMP直播流录制为MP4文件并开启faststart</li>
+<li>支持RTMP/RTSP中继（关键）</li>
+<li>支持多核集群模式</li>
+<li>支持录制为MP4回放</li>
+<li>支持实时转码(关键)</li>
+<li>支持低延迟HLS/DASH</li>
+<li>支持on_connect/on_publish/on_play/on_done 事件回调</li>
+</ul>
+<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><blockquote>
+<p>node-media-server 是基于node.Js开发的（前提要有NodeJS环境），所以需要先使用npm安装。</p>
+<p>本章演示环境为windows</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">npm install node-media-server</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>运行结果：</p>
+</blockquote>
+<p><img src="https://img-blog.csdnimg.cn/9b2d527c139e47a4beae19536c5cebbb.png?x-oss-process=image/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBAUmVuQ2hpbmc=,size_20,color_FFFFFF,t_70,g_se,x_16" alt="在这里插入图片描述"></p>
+<blockquote>
+<p>执行完后会下当前路径下生成 node_modules 文件夹</p>
+</blockquote>
+<p><img src="https://img-blog.csdnimg.cn/577b6563b9144f0f9aa46d5640fd6f3d.png?x-oss-process=image/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBAUmVuQ2hpbmc=,size_20,color_FFFFFF,t_70,g_se,x_16" alt="在这里插入图片描述"></p>
+<h2 id="编写-app-js"><a href="#编写-app-js" class="headerlink" title="编写 app.js"></a>编写 app.js</h2><blockquote>
+<p>进入 node_modules 目录新建 app.js 文件。并编写下述代码，然后运行app.js</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">cat app.js</span><br><span class="line"></span><br><span class="line">const NodeMediaServer= require(&apos;node-media-server&apos;);</span><br><span class="line">const config = &#123;</span><br><span class="line">  rtmp: &#123;</span><br><span class="line">    port: 1935,</span><br><span class="line">    chunk_size: 60000,</span><br><span class="line">    gop_cache: true,</span><br><span class="line">    ping: 60,</span><br><span class="line">    ping_timeout: 30</span><br><span class="line">  &#125;,</span><br><span class="line">  http: &#123;</span><br><span class="line">    port: 8000,</span><br><span class="line">    allow_origin: &apos;*&apos;,</span><br><span class="line">  &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">var nms = new NodeMediaServer(config)</span><br><span class="line">nms.run();</span><br></pre></td></tr></table></figure>
+
+<h2 id="运行-app-js"><a href="#运行-app-js" class="headerlink" title="运行 app.js"></a>运行 app.js</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">node app.js</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>运行结果：</p>
+</blockquote>
+<p><img src="https://img-blog.csdnimg.cn/1ad91fa8794e47f3a82317df68cc1c23.png" alt="在这里插入图片描述"></p>
+<p>可以访问 localhost:8000/admin 地址，访问node-media-server的管理端界面。</p>
+<blockquote>
+<p>访问结果如下：</p>
+</blockquote>
+<p><img src="https://img-blog.csdnimg.cn/4a60c749c2af486aac62121f3715ae96.png?x-oss-process=image/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBAUmVuQ2hpbmc=,size_20,color_FFFFFF,t_70,g_se,x_16" alt="在这里插入图片描述"></p>
+<h2 id="使用-FFmpeg-命令推流"><a href="#使用-FFmpeg-命令推流" class="headerlink" title="使用 FFmpeg 命令推流"></a>使用 FFmpeg 命令推流</h2><blockquote>
+<p>windows 安装配置 FFmpeg 教程： <a href="https://blog.csdn.net/chy466071353/article/details/54949221" target="_blank" rel="noopener">https://blog.csdn.net/chy466071353/article/details/54949221</a></p>
+</blockquote>
+<blockquote>
+<p>在执行下面的代码的时候，需要将 node-media-server 启动起来。</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ffmpeg -re -i ./index_video.mp4 -c copy -f flv rtmp://localhost:1935/live/mystream</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>运行结果：</p>
+</blockquote>
+<p><img src="C:%5CUsers%5CRAYDATA%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20211028110814547.png" alt="image-20211028110814547"></p>
+<blockquote>
+<p>上述的命令经过 node-media-server 后会产生两种流地址。一种rtmp。一种flv。前者可以在电脑上播放，后者可以在手机和电脑上播放。</p>
+<p>rtmp 地址为：rtmp://localhost:1935/live/mystream<br>flv 地址为： <a href="http://localhost:8000/live/mystream.flv" target="_blank" rel="noopener">http://localhost:8000/live/mystream.flv</a></p>
+</blockquote>
+<h2 id="拉流测试"><a href="#拉流测试" class="headerlink" title="拉流测试"></a>拉流测试</h2><blockquote>
+<p>rtmp 拉流，可以使用 VLC 工具进行拉流</p>
+<p>打开 VLC –》control+n–》网络</p>
+</blockquote>
+<p><img src="https://img-blog.csdnimg.cn/fdac7206470f4695b1550781b3441e3e.png?x-oss-process=image/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBAUmVuQ2hpbmc=,size_20,color_FFFFFF,t_70,g_se,x_16" alt="在这里插入图片描述"></p>
+<blockquote>
+<p>rtmp 拉流画面如下：</p>
+</blockquote>
+<p><img src="https://img-blog.csdnimg.cn/ccef3bdaa70f47e1b3c8c1ea89a8b561.png?x-oss-process=image/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBAUmVuQ2hpbmc=,size_20,color_FFFFFF,t_70,g_se,x_16" alt="在这里插入图片描述"></p>
+<blockquote>
+<p>flv 拉流</p>
+</blockquote>
+<p><img src="https://img-blog.csdnimg.cn/1d245dbb10c444a0b1f3d8f6e2647815.png?x-oss-process=image/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBAUmVuQ2hpbmc=,size_20,color_FFFFFF,t_70,g_se,x_16" alt="在这里插入图片描述"></p>
+<blockquote>
+<p>flv 拉流画面如下：</p>
+</blockquote>
+<p><img src="https://img-blog.csdnimg.cn/4eaab8e1f4514dba80adfcc063e72f1e.png?x-oss-process=image/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBAUmVuQ2hpbmc=,size_20,color_FFFFFF,t_70,g_se,x_16" alt="在这里插入图片描述"></p>
+<h2 id="推送-rtsp-流"><a href="#推送-rtsp-流" class="headerlink" title="推送 rtsp 流"></a>推送 rtsp 流</h2><blockquote>
+<p>推送rtsp（摄像头视频流）只要将上述的 ./index_video.mp4 改成需要推流的 rtsp 流地址就行。在测试过程中发现，推送 rtsp 流要么会出现绿屏要么会出现丢包现象，特别是和 hls 结合在一起，丢包率更大，所以不建议使用命令去推送 rtsp 流。</p>
+</blockquote>
+<h2 id="转-hls-流格式"><a href="#转-hls-流格式" class="headerlink" title="转 hls 流格式"></a>转 hls 流格式</h2><blockquote>
+<p>转hls流需要注意一点，需要指明一下mediaroot 参数，虽然 node-media-server 内部有设置默认值，但是还是推荐在设置一次。然后使用下述配置即可。</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">cat app.js</span><br><span class="line"></span><br><span class="line">const NodeMediaServer= require(&apos;node-media-server&apos;);</span><br><span class="line">const ff = require(&apos;ffmpeg&apos;);</span><br><span class="line">const config = &#123;</span><br><span class="line">  rtmp: &#123;</span><br><span class="line">    port: 1935,</span><br><span class="line">    chunk_size: 60000,</span><br><span class="line">    gop_cache: true,</span><br><span class="line">    ping: 60,</span><br><span class="line">    ping_timeout: 30</span><br><span class="line">  &#125;,</span><br><span class="line">  http: &#123;</span><br><span class="line">    port: 8000,</span><br><span class="line">    mediaroot: &apos;./media/&apos;, // 建议写</span><br><span class="line">    allow_origin: &apos;*&apos;,</span><br><span class="line">  &#125;,</span><br><span class="line">  trans: &#123; // 这里参数是 trans 参数，不是 relay 参数，relay 参数中配置 hls 无效</span><br><span class="line">    ffmpeg: &apos;D:/ffmpeg/bin/ffmpeg.exe&apos;, //指明FFmpeg位置</span><br><span class="line">    tasks: [</span><br><span class="line">      &#123;</span><br><span class="line">        app: &apos;live&apos;,</span><br><span class="line">        ac: &apos;acc&apos;,</span><br><span class="line">        vc: &apos;libx264&apos;,</span><br><span class="line">        hls: true,</span><br><span class="line">        hlsFlags: &apos;[hls_time=2:hls_list_size=3:hls_flags=delete_segments]&apos;,</span><br><span class="line">        dash: true,</span><br><span class="line">        dashFlags: &apos;[f=dash:window_size=3:extra_window_size=5]&apos;</span><br><span class="line">      &#125;</span><br><span class="line">    ]</span><br><span class="line">  &#125;</span><br><span class="line">&#125;;</span><br><span class="line">  </span><br><span class="line">var nms = new NodeMediaServer(config)</span><br><span class="line">nms.run();</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>启动上述代码后，使用 FFmpeg进行 推流，稍等一会，就会发现在 mediaroot 指向的目录下生成一个live/mystream的文件夹，里面存放着m3u8文件。由于需要先生成m3u8文件，所以如果是推流摄像头的话，会存在比较大的延迟。</p>
+<p>m3u8地址为：<a href="http://localhost:8000/live/mystream/index.m3u8" target="_blank" rel="noopener">http://localhost:8000/live/mystream/index.m3u8</a></p>
+<p>如果发现 m3u8 播放有问题，把 ac 和 vc 两个参数去掉试试。</p>
+</blockquote>
+<h2 id="使用代码对-rtmp-rtsp-流转流"><a href="#使用代码对-rtmp-rtsp-流转流" class="headerlink" title="使用代码对 rtmp/rtsp 流转流"></a>使用代码对 rtmp/rtsp 流转流</h2><blockquote>
+<p>对于有的使用者有可能需要将 rtsp 摄像头视频流进行推流，以便进行跨端预览，这里建议使用这种方法。这种方法无需使用 cmd 执行 FFmpeg 命令，而且延迟经测试为3s（内网，由于没有外网地址，所以外网不是很清楚）。延迟较小。</p>
+</blockquote>
+<blockquote>
+<p>rtsp 流转流</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">cat app.js</span><br><span class="line"></span><br><span class="line">const NodeMediaServer= require(&apos;node-media-server&apos;);</span><br><span class="line">const config = &#123;</span><br><span class="line">  rtmp: &#123;</span><br><span class="line">    port: 1935,</span><br><span class="line">    chunk_size: 60000,</span><br><span class="line">    gop_cache: true,</span><br><span class="line">    ping: 60,</span><br><span class="line">    ping_timeout: 30</span><br><span class="line">  &#125;,</span><br><span class="line">  http: &#123;</span><br><span class="line">    port: 8000,</span><br><span class="line">    allow_origin: &apos;*&apos;,</span><br><span class="line">  &#125;,</span><br><span class="line">  relay: &#123;</span><br><span class="line">    ffmpeg: &apos;D:/ffmpeg/bin/ffmpeg.exe&apos;,</span><br><span class="line">    tasks: [</span><br><span class="line">      &#123;</span><br><span class="line">        app: &apos;live&apos;,</span><br><span class="line">        mode: &apos;static&apos;,</span><br><span class="line">        edge: &apos;rtsp://admin:*******@192.168.100.101:554/Streaming/Channels/101?transportmode=unicast&apos;, //rtsp流地址</span><br><span class="line">        name: &apos;myrtsp&apos;,</span><br><span class="line">        rtsp_transport : &apos;tcp&apos;, //[&apos;udp&apos;, &apos;tcp&apos;, &apos;udp_multicast&apos;, &apos;http&apos;]</span><br><span class="line">      &#125;</span><br><span class="line">    ]</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;;</span><br><span class="line">  </span><br><span class="line">var nms = new NodeMediaServer(config)</span><br><span class="line">nms.run();</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>运行 app.js</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">node app.js</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>运行结果：</p>
+</blockquote>
+<p><img src="https://img-blog.csdnimg.cn/4cdccdac3e114a28af1eff9e3a677ac1.png?x-oss-process=image/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBAUmVuQ2hpbmc=,size_20,color_FFFFFF,t_70,g_se,x_16" alt="在这里插入图片描述"></p>
+<blockquote>
+<p>这种方法可以产生两种视频流，一种rtmp一种flv。</p>
+<p>rtmp 地址为：rtmp://127.0.0.1:1935/live/myrtsp<br>flv 地址为： <a href="http://localhost:8000/live/myrtsp.flv" target="_blank" rel="noopener">http://localhost:8000/live/myrtsp.flv</a></p>
+</blockquote>
+<blockquote>
+<p>rtmp 拉流画面如下：</p>
+</blockquote>
+<p><img src="https://img-blog.csdnimg.cn/da8fbf6d5856425bb3b3cf4ee7007dac.png?x-oss-process=image/watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBAUmVuQ2hpbmc=,size_20,color_FFFFFF,t_70,g_se,x_16" alt="在这里插入图片描述"></p>
+<blockquote>
+<p>flv 拉流画面如下：</p>
+</blockquote>
+<p><img src="https://img-blog.csdnimg.cn/01d62175543149c5bc32f11ccad99eda.png?x-oss-process=image/watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBAUmVuQ2hpbmc=,size_20,color_FFFFFF,t_70,g_se,x_16" alt="在这里插入图片描述"></p>
+<blockquote>
+<p>更多转流方式参考：<a href="https://www.cnblogs.com/ldy-blogs/p/10081787.html#_lab2_11_1" target="_blank" rel="noopener">https://www.cnblogs.com/ldy-blogs/p/10081787.html#_lab2_11_1</a></p>
+</blockquote>
+</div></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">Author: </span><span class="post-copyright-info"><a href="mailto:undefined">RenChing Doe</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">Link: </span><span class="post-copyright-info"><a href="http://yoursite.com/2021/12/27/使用-node-media-server-搭建流媒体服务器/">http://yoursite.com/2021/12/27/使用-node-media-server-搭建流媒体服务器/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">Copyright Notice: </span><span class="post-copyright-info">All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless stating additionally.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Centos/">Centos    </a><a class="post-meta__tags" href="/tags/流媒体服务器/">流媒体服务器    </a><a class="post-meta__tags" href="/tags/node-media-server/">node-media-server    </a></div><div class="post_share"><div class="social-share" data-image="https://img-blog.csdnimg.cn/4a60c749c2af486aac62121f3715ae96.png?x-oss-process=image/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBAUmVuQ2hpbmc=,size_20,color_FFFFFF,t_70,g_se,x_16" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js@1.0.16/dist/css/share.min.css"><script src="https://cdn.jsdelivr.net/npm/social-share.js@1.0.16/dist/js/social-share.min.js"></script></div></div><div class="post-reward"><a class="reward-buttom"><i class="fa fa-qrcode"></i> Donate<div class="reward-main"><ul class="reward-all"><li class="reward-item"><img class="lozad post-qr-code__img" data-src="/img/wechat.jpg"><div class="post-qr-code__desc">微信</div></li><li class="reward-item"><img class="lozad post-qr-code__img" data-src="/img/alipay.jpg"><div class="post-qr-code__desc">支付寶</div></li></ul></div></a></div><nav class="pagination_post" id="pagination"><div class="prev-post pull-left"><a href="/2021/12/27/分布式与集群的区别/"><img class="prev_cover lozad" data-src="https://img-blog.csdnimg.cn/17c5a6cae3ac4020a4ecff25c647df80.png?x-oss-process=image/watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBAUmVuQ2hpbmc=,size_20,color_FFFFFF,t_70,g_se,x_16" onerror="onerror=null;src='/img/404.jpg'"><div class="label">Previous Post</div><div class="prev_info"><span>分布式与集群的区别</span></div></a></div><div class="next-post pull-right"><a href="/2021/12/27/使用-go-mysql-elasticsearch-开源工具同步-MySQL-数据到-ES/"><img class="next_cover lozad" data-src="undefined" onerror="onerror=null;src='/img/404.jpg'"><div class="label">Next Post</div><div class="next_info"><span>使用 go-mysql-elasticsearch 开源工具同步 MySQL 数据到 ES</span></div></a></div></nav><div class="relatedPosts"><div class="relatedPosts_headline"><i class="fa fa-fw fa-thumbs-up" aria-hidden="true"></i><span>Recommend</span></div><div class="relatedPosts_list"><div class="relatedPosts_item"><a href="/2021/12/27/CentOS-使用-Nginx-搭建-http-flv-直播流媒体服务器/" title="CentOS 使用 Nginx 搭建 http-flv 直播流媒体服务器"><img class="relatedPosts_cover lozad" data-src="https://img.trickyedecay.me/FufGyYAvIh817tYtkIRlsUkDHzz-"><div class="relatedPosts_title">CentOS 使用 Nginx 搭建 http-flv 直播流媒体服务器</div></a></div><div class="relatedPosts_item"><a href="/2021/12/27/CentOS-7-yum-方式安装-MySQL5-7/" title="CentOS 7 yum 方式安装 MySQL5.7"><img class="relatedPosts_cover lozad" data-src="https://img-blog.csdnimg.cn/6eb871ff74734f11a95217bad131f97a.png?x-oss-process=image/watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBAUmVuQ2hpbmc=,size_20,color_FFFFFF,t_70,g_se,x_16"><div class="relatedPosts_title">CentOS 7 yum 方式安装 MySQL5.7</div></a></div><div class="relatedPosts_item"><a href="/2021/12/27/canal-实现-MySQL-实时同步数据到-ES/" title="canal 实现 MySQL 实时同步数据到 ES"><img class="relatedPosts_cover lozad" data-src="https://img-blog.csdnimg.cn/img_convert/7af03f662745af0662324eb24be4f170.png"><div class="relatedPosts_title">canal 实现 MySQL 实时同步数据到 ES</div></a></div><div class="relatedPosts_item"><a href="/2021/12/25/Docker-可视化管理工具之-Portainer/" title="Docker 可视化管理工具之 Portainer"><img class="relatedPosts_cover lozad" data-src="https://img-blog.csdnimg.cn/26f5f4840a3c4430bc438e7042d24018.png?x-oss-process=image/watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBAUmVuQ2hpbmc=,size_20,color_FFFFFF,t_70,g_se,x_16"><div class="relatedPosts_title">Docker 可视化管理工具之 Portainer</div></a></div><div class="relatedPosts_item"><a href="/2021/12/25/Docker-容器跨主机通信-之-Swarm-方式/" title="Docker 容器跨主机通信 之 Swarm 方式"><img class="relatedPosts_cover lozad" data-src="https://img-blog.csdnimg.cn/069c76503afa4194a173fd940a36a47c.png?x-oss-process=image/watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBAUmVuQ2hpbmc=,size_20,color_FFFFFF,t_70,g_se,x_16"><div class="relatedPosts_title">Docker 容器跨主机通信 之 Swarm 方式</div></a></div><div class="relatedPosts_item"><a href="/2021/12/25/Docker-容器跨主机通信之直接路由方式/" title="Docker 容器跨主机通信之直接路由方式"><img class="relatedPosts_cover lozad" data-src="https://img-blog.csdnimg.cn/e7cc794cb709447bbb8f22aa8f76d88e.png?x-oss-process=image/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBAUmVuQ2hpbmc=,size_20,color_FFFFFF,t_70,g_se,x_16"><div class="relatedPosts_title">Docker 容器跨主机通信之直接路由方式</div></a></div></div><div class="clear_both"></div></div></div></div><footer><div class="layout" id="footer"><div class="copyright">&copy;2018 - 2021 By RenChing Doe</div><div class="framework-info"><span>Driven </span><a href="http://hexo.io"><span>Hexo</span></a><span class="footer-separator">|</span><span>Theme </span><a href="https://github.com/jerryc127/hexo-theme-butterfly"><span>Butterfly</span></a></div><div class="footer_custom_text">Hi, welcome to my <a href="https://renqingsangbu.github.io/">blog</a>!</div></div></footer><i class="fa fa-arrow-up" id="go-up" aria-hidden="true"></i><section class="rightside" id="rightside"><i class="fa fa-book" id="readmode" title="Read Mode"> </i><i class="fa fa-plus" id="font_plus" title="Increase font size"></i><i class="fa fa-minus" id="font_minus" title="Decrease font size"></i><a class="translate_chn_to_cht" id="translateLink" href="javascript:translatePage();" title="Traditional Chinese and Simplified Chinese Conversion">繁</a><i class="fa fa-moon-o nightshift" id="nightshift" title="Dark Mode"></i></section><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/js-cookie@2/src/js.cookie.min.js"></script><script src="https://cdn.jsdelivr.net/npm/lozad/dist/lozad.min.js"></script><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script><script src="/js/third-party/fireworks.js"></script><script src="/js/nightshift.js"></script><script id="ribbon" src="/js/third-party/canvas-ribbon.js" size="150" alpha="0.6" zindex="-1" data-click="false"></script><script src="/js/activate-power-mode.js"></script><script>POWERMODE.colorful = true; // make power mode colorful
+POWERMODE.shake = true; // turn off shake
+document.body.addEventListener('input', POWERMODE);
+</script><script src="/js/tw_cn.js"></script><script>translateInitilization()
+
+</script><script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page@1.2.2/instantpage.min.js" type="module"></script></body></html>
